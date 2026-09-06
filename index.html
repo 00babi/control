@@ -246,9 +246,18 @@
 <div id="loginOverlay">
   <div class="login-box">
     <h2>Access required</h2>
-    <p>Enter the local dashboard password to continue.</p>
+    <p>Enter the local dashboard password, or upload your key file.</p>
     <input type="password" id="passwordInput" placeholder="Password" onkeydown="if(event.key==='Enter') attemptLogin();" />
     <button class="action-btn" onclick="attemptLogin()">Unlock</button>
+    <div style="display: flex; align-items: center; gap: 10px; margin: 2px 0;">
+      <div style="flex: 1; height: 1px; background: var(--border);"></div>
+      <span style="font-size: 0.72rem; color: var(--muted-dim);">or</span>
+      <div style="flex: 1; height: 1px; background: var(--border);"></div>
+    </div>
+    <label class="preset-btn" style="text-align: center; cursor: pointer;">
+      Upload key file
+      <input type="file" id="keyFileInput" accept=".key,.txt" style="display: none;" onchange="handleKeyFileUpload(event)" />
+    </label>
     <span id="loginError"></span>
   </div>
 </div>
@@ -283,16 +292,17 @@
   <div class="panel">
     <div class="panel-label">
       Persona
-      <a class="repo-link" href="https://github.com/00babi/control/edit/main/system_prompt.txt" target="_blank">Edit on GitHub</a>
+      <a class="repo-link" href="https://github.com/00babi/control/blob/main/system_prompt.txt" target="_blank">View starting prompt</a>
     </div>
 
     <div>
-      <label class="field-label" style="margin-bottom: 6px;">Currently active system prompt (managed on GitHub, read-only here)</label>
-      <textarea id="systemPromptInput" placeholder="Loading..." readonly style="opacity: 0.75; cursor: default;"></textarea>
+      <label class="field-label" style="margin-bottom: 6px;">System instructions</label>
+      <textarea id="systemPromptInput" placeholder="Loading..."></textarea>
     </div>
 
-    <div class="overview-line" style="font-size: 0.78rem;">
-      Edits go live automatically within ~60 seconds of saving on GitHub — no restart needed.
+    <div class="action-row">
+      <span class="save-feedback" id="personaFeedback"></span>
+      <button class="action-btn" onclick="savePersona()">Save persona</button>
     </div>
   </div>
 
@@ -348,13 +358,36 @@
     const input = document.getElementById("passwordInput");
     const errorEl = document.getElementById("loginError");
     const key = input.value.trim();
-    if (!key) { errorEl.textContent = "Enter a password."; return; }
+    if (!key) { errorEl.textContent = "Enter a password or upload your key file."; return; }
+    await tryKey(key);
+  }
 
+  function handleKeyFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const key = reader.result.trim();
+      if (!key) {
+        document.getElementById("loginError").textContent = "That file appears to be empty.";
+        return;
+      }
+      await tryKey(key);
+    };
+    reader.onerror = () => {
+      document.getElementById("loginError").textContent = "Could not read that file.";
+    };
+    reader.readAsText(file);
+  }
+
+  async function tryKey(key) {
+    const errorEl = document.getElementById("loginError");
     setStoredKey(key);
     try {
       const res = await fetch(`${BRIDGE_URL}/status`, { headers: authHeaders() });
       if (res.status === 401) {
-        errorEl.textContent = "Incorrect password.";
+        errorEl.textContent = "Incorrect key.";
         localStorage.removeItem("goon_dashboard_key");
         return;
       }
@@ -448,6 +481,29 @@
       }
     } catch (e) {
       feedbackEl.textContent = "Error reaching bridge.";
+    }
+  }
+
+  async function savePersona() {
+    const prompt = document.getElementById("systemPromptInput").value;
+    const feedback = document.getElementById("personaFeedback");
+    feedback.textContent = "Pushing to GitHub...";
+    try {
+      const res = await fetch(`${BRIDGE_URL}/prompt`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ system_prompt: prompt })
+      });
+      if (res.status === 401) { lockDashboard("Session expired. Log in again."); return; }
+      const data = await res.json();
+      if (res.ok) {
+        feedback.textContent = "Pushed to GitHub — live now.";
+        setTimeout(() => feedback.textContent = "", 3000);
+      } else {
+        feedback.textContent = `Failed: ${data.error}`;
+      }
+    } catch (e) {
+      feedback.textContent = "Could not reach bridge.";
     }
   }
 
