@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Goon Controller</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --panel: #131319;
+    --panel-raised: #17171f;
+    --border: #232330;
+    --text: #f4f4f6;
+    --muted: #87879a;
+    --muted-dim: #55556a;
+    --amber: #f2b705;
+    --amber-dim: #7a5e08;
+    --green: #22c55e;
+    --red: #ef4444;
+    --mono: 'JetBrains Mono', monospace;
+    --display: 'Space Grotesk', sans-serif;
+    --body: 'Inter', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--body);
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 15% 0%, rgba(242,183,5,0.05), transparent 40%);
+    color: var(--text);
+    padding: 32px 20px;
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+  }
+
+  .dashboard {
+    width: 100%;
+    max-width: 920px;
+    display: none;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand-title {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 1.7rem;
+    letter-spacing: -0.01em;
+  }
+  .brand-sub {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-top: 4px;
+  }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+
+  .status-pill {
+    font-size: 0.8rem;
+    padding: 5px 12px 5px 10px;
+    border-radius: 999px;
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--red); flex-shrink: 0; }
+  .status-pill.online .status-dot { background: var(--green); box-shadow: 0 0 6px rgba(34,197,94,0.7); }
+  .status-pill.online { color: var(--text); }
+
+  .repo-link {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.82rem;
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .repo-link:hover { color: var(--text); border-color: var(--muted-dim); }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .panel-label {
+    font-family: var(--display);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .terminal-box {
+    background: #000000;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    line-height: 1.55;
+    color: #6ee7ff;
+    height: 170px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+  }
+  .terminal-box::-webkit-scrollbar { width: 8px; }
+  .terminal-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .overview-line { font-size: 0.88rem; color: var(--muted); line-height: 1.7; }
+  .overview-line strong { color: var(--text); font-weight: 500; }
+
+  textarea, input[type="text"] {
+    background: #000000;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 11px 12px;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    width: 100%;
+    outline: none;
+    font-family: var(--body);
+    transition: border-color 0.15s;
+  }
+  textarea { resize: vertical; min-height: 110px; line-height: 1.5; font-family: var(--mono); font-size: 0.82rem; }
+  textarea:focus, input:focus { border-color: var(--amber-dim); }
+
+  .field-label { font-size: 0.78rem; color: var(--muted); display: block; }
+
+  .preset-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .preset-btn {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    font-family: var(--body);
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .preset-btn:hover { border-color: var(--amber-dim); color: var(--text); }
+
+  .slider-group { display: flex; flex-direction: column; gap: 7px; }
+  .slider-header { display: flex; justify-content: space-between; font-size: 0.85rem; }
+  .slider-header strong { font-family: var(--mono); font-weight: 500; color: var(--amber); }
+  .slider-desc { font-size: 0.76rem; color: var(--muted-dim); }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border);
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--amber);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+  }
+
+  .action-row { display: flex; justify-content: space-between; align-items: center; margin-top: 2px; }
+  .save-feedback { font-size: 0.8rem; color: var(--green); min-height: 1.1em; }
+
+  button.action-btn {
+    background: var(--amber);
+    color: #1a1300;
+    border: none;
+    padding: 9px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85rem;
+    font-family: var(--body);
+    transition: filter 0.15s;
+  }
+  button.action-btn:hover { filter: brightness(1.08); }
+  button.action-btn:active { filter: brightness(0.95); }
+
+  .dispatch-row { display: flex; gap: 10px; }
+  .dispatch-row input:first-child { flex: 0 0 200px; }
+  .dispatch-row input:last-child { flex: 1; }
+  .dispatch-result { font-size: 0.78rem; color: var(--muted); }
+
+  #loginOverlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+  }
+  .login-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 32px;
+    width: 100%;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .login-box h2 { font-family: var(--display); font-size: 1.1rem; font-weight: 600; }
+  .login-box p { font-size: 0.82rem; color: var(--muted); margin-top: -8px; }
+  #loginError { color: var(--red); font-size: 0.8rem; min-height: 1em; }
+
+  @media (max-width: 720px) {
+    .grid { grid-template-columns: 1fr; }
+    .dispatch-row { flex-direction: column; }
+    .dispatch-row input:first-child { flex: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loginOverlay">
+  <div class="login-box">
+    <h2>Access required</h2>
+    <p>Enter the local dashboard password to continue.</p>
+    <input type="password" id="passwordInput" placeholder="Password" onkeydown="if(event.key==='Enter') attemptLogin();" />
+    <button class="action-btn" onclick="attemptLogin()">Unlock</button>
+    <span id="loginError"></span>
+  </div>
+</div>
+
+<div class="dashboard" id="dashboardRoot">
+  <header>
+    <div>
+      <div class="brand-title">The Goon Controller</div>
+      <div class="brand-sub">Local control panel — tune persona, watch activity, broadcast messages</div>
+    </div>
+    <div class="header-right">
+      <div class="status-pill" id="botBadge">
+        <span class="status-dot"></span>
+        <span id="statusLabel">Offline</span>
+      </div>
+      <a class="repo-link" href="https://github.com/kz1x/neo" target="_blank">Repo</a>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="panel-label">Overview</div>
+      <div class="overview-line" id="overviewData">Connecting to local bridge…</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">Activity feed</div>
+      <div class="terminal-box" id="logBox">Waiting for bridge connection...</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">
+      Persona
+      <div class="preset-row">
+        <button class="preset-btn" onclick="applyPreset('unhinged')">Unhinged</button>
+        <button class="preset-btn" onclick="applyPreset('savage')">Savage roaster</button>
+        <button class="preset-btn" onclick="applyPreset('chill')">Casual chill</button>
+      </div>
+    </div>
+
+    <div>
+      <label class="field-label" style="margin-bottom: 6px;">System instructions</label>
+      <textarea id="systemPromptInput" placeholder="System instructions..."></textarea>
+    </div>
+
+    <div class="action-row">
+      <span class="save-feedback" id="personaFeedback"></span>
+      <button class="action-btn" onclick="savePersona()">Save persona</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">Tuning</div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+      <div class="slider-group">
+        <div class="slider-header">
+          <span>Temperature</span>
+          <strong id="tempValue">1.05</strong>
+        </div>
+        <input type="range" id="tempSlider" min="0.3" max="1.5" step="0.05" value="1.05" oninput="updateTempDesc(this.value);" />
+        <span class="slider-desc" id="tempDesc">Unhinged: creative, chaotic, sharp slang</span>
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-header">
+          <span>Max response length</span>
+          <strong id="tokenValue">120</strong>
+        </div>
+        <input type="range" id="tokenSlider" min="50" max="300" step="10" value="120" oninput="document.getElementById('tokenValue').textContent = this.value;" />
+        <span class="slider-desc">Room to finish a thought without cutting off</span>
+      </div>
+    </div>
+
+    <div class="action-row">
+      <span class="save-feedback" id="tuningFeedback"></span>
+      <button class="action-btn" onclick="saveTuning()">Save tuning</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">Manual broadcast</div>
+    <div class="dispatch-row">
+      <input type="text" id="targetChannelId" placeholder="Channel ID" />
+      <input type="text" id="manualMessage" placeholder="Message content..." />
+      <button class="action-btn" onclick="sendBroadcast()">Dispatch</button>
+    </div>
+    <span class="dispatch-result" id="broadcastResult"></span>
+  </div>
+</div>
+
+<script>
+  const BRIDGE_URL = "http://localhost:5000";
+  let initialLoaded = false;
+
+  function getStoredKey() { return localStorage.getItem("goon_dashboard_key") || ""; }
+  function setStoredKey(key) { localStorage.setItem("goon_dashboard_key", key); }
+  function authHeaders(extra = {}) { return Object.assign({ "X-API-Key": getStoredKey() }, extra); }
+
+  async function attemptLogin() {
+    const input = document.getElementById("passwordInput");
+    const errorEl = document.getElementById("loginError");
+    const key = input.value.trim();
+    if (!key) { errorEl.textContent = "Enter a password."; return; }
+
+    setStoredKey(key);
+    try {
+      const res = await fetch(`${BRIDGE_URL}/status`, { headers: authHeaders() });
+      if (res.status === 401) {
+        errorEl.textContent = "Incorrect password.";
+        localStorage.removeItem("goon_dashboard_key");
+        return;
+      }
+      unlockDashboard();
+    } catch (e) {
+      errorEl.textContent = "Could not reach the bot bridge. Is it running?";
+    }
+  }
+
+  function unlockDashboard() {
+    document.getElementById("loginOverlay").style.display = "none";
+    document.getElementById("dashboardRoot").style.display = "flex";
+    pollStatus();
+    setInterval(pollStatus, 3000);
+  }
+
+  function lockDashboard(message) {
+    document.getElementById("dashboardRoot").style.display = "none";
+    document.getElementById("loginOverlay").style.display = "flex";
+    document.getElementById("loginError").textContent = message || "";
+    localStorage.removeItem("goon_dashboard_key");
+  }
+
+  const presets = {
+    unhinged: {
+      prompt: "You are The Goon. You are an actual human in this Discord server, completely unhinged, sharp-tongued, and chaotic. You talk like an internet goblin.\n\nRules:\n1. NEVER say you are an AI, bot, assistant, or computer program. You are a real person.\n2. Write 1 or 2 complete, punchy sentences. Always finish your thoughts completely without getting cut off.\n3. Use raw internet slang, deadpan roasts, and casual profanity.\n4. Never give corporate apologies, moral lessons, or roleplay in italics.\n5. Only respond to what the user actually said - don't invent people or stories.",
+      temp: 1.05, tokens: 120
+    },
+    savage: {
+      prompt: "You are The Goon. You are an aggressive, brutally sarcastic person in this chat. Every reply must mock the user's intelligence or question in 1-2 sharp sentences. Finish your thought completely. Never mention you are a bot or AI. Only respond to what the user actually said.",
+      temp: 0.95, tokens: 110
+    },
+    chill: {
+      prompt: "You are The Goon. You are an ultra-casual person chilling in Discord who talks in lowercase internet slang. Short replies, chill vibes, slightly chaotic. Finish your thought completely. You are a real person, not an AI.",
+      temp: 0.75, tokens: 90
+    }
+  };
+
+  function updateTempDesc(val) {
+    document.getElementById("tempValue").textContent = val;
+    const desc = document.getElementById("tempDesc");
+    const num = parseFloat(val);
+    if (num < 0.6) desc.textContent = "Predictable and tame";
+    else if (num <= 0.9) desc.textContent = "Balanced banter, natural slang";
+    else if (num <= 1.2) desc.textContent = "Unhinged: creative, chaotic, sharp roasts";
+    else desc.textContent = "Extreme chaos: high randomness";
+  }
+
+  function applyPreset(type) {
+    const p = presets[type];
+    if (!p) return;
+    document.getElementById("systemPromptInput").value = p.prompt;
+    document.getElementById("tempSlider").value = p.temp;
+    document.getElementById("tokenSlider").value = p.tokens;
+    document.getElementById("tokenValue").textContent = p.tokens;
+    updateTempDesc(p.temp);
+    savePersona();
+    saveTuning();
+  }
+
+  async function pollStatus() {
+    try {
+      const res = await fetch(`${BRIDGE_URL}/status`, { headers: authHeaders() });
+      if (res.status === 401) { lockDashboard("Session expired. Log in again."); return; }
+      if (!res.ok) return;
+
+      const data = await res.json();
+      const badge = document.getElementById("botBadge");
+      const label = document.getElementById("statusLabel");
+      if (data.online) {
+        badge.classList.add("online");
+        label.textContent = `Online — ${data.bot_user}`;
+      } else {
+        badge.classList.remove("online");
+        label.textContent = "Connecting...";
+      }
+
+      const guildList = data.guilds.map(g => `${g.name} — ${g.members} members`).join("<br>");
+      document.getElementById("overviewData").innerHTML = `
+        <strong>Model</strong> ${data.model}<br>
+        <strong>Servers</strong> ${data.guilds.length}<br>
+        <div style="margin-top: 8px;">${guildList || "No guilds detected."}</div>
+      `;
+
+      const logBox = document.getElementById("logBox");
+      logBox.textContent = data.logs.join("\n") || "No recent activity.";
+      logBox.scrollTop = logBox.scrollHeight;
+
+      if (!initialLoaded && data.settings) {
+        document.getElementById("systemPromptInput").value = data.settings.system_prompt;
+        document.getElementById("tempSlider").value = data.settings.temperature;
+        document.getElementById("tokenSlider").value = data.settings.max_tokens || 120;
+        document.getElementById("tokenValue").textContent = data.settings.max_tokens || 120;
+        updateTempDesc(data.settings.temperature);
+        initialLoaded = true;
+      }
+    } catch (e) {
+      document.getElementById("botBadge").classList.remove("online");
+      document.getElementById("statusLabel").textContent = "Bridge offline";
+      document.getElementById("overviewData").textContent = "Local bridge not detected. Make sure the bot is running.";
+    }
+  }
+
+  async function pushSettings(payload, feedbackEl) {
+    feedbackEl.textContent = "Saving...";
+    try {
+      const res = await fetch(`${BRIDGE_URL}/settings`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify(payload)
+      });
+      if (res.status === 401) { lockDashboard("Session expired. Log in again."); return; }
+      if (res.ok) {
+        feedbackEl.textContent = "Saved — persists across restarts.";
+        setTimeout(() => feedbackEl.textContent = "", 3000);
+      } else {
+        feedbackEl.textContent = "Could not save.";
+      }
+    } catch (e) {
+      feedbackEl.textContent = "Error reaching bridge.";
+    }
+  }
+
+  function savePersona() {
+    const prompt = document.getElementById("systemPromptInput").value;
+    pushSettings({ system_prompt: prompt }, document.getElementById("personaFeedback"));
+  }
+
+  function saveTuning() {
+    const temp = parseFloat(document.getElementById("tempSlider").value);
+    const tokens = parseInt(document.getElementById("tokenSlider").value);
+    pushSettings({ temperature: temp, max_tokens: tokens }, document.getElementById("tuningFeedback"));
+  }
+
+  async function sendBroadcast() {
+    const channelId = document.getElementById("targetChannelId").value.trim();
+    const msg = document.getElementById("manualMessage").value.trim();
+    const feedback = document.getElementById("broadcastResult");
+    if (!channelId || !msg) return;
+
+    try {
+      const res = await fetch(`${BRIDGE_URL}/send`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ channel_id: channelId, message: msg })
+      });
+      if (res.status === 401) { lockDashboard("Session expired. Log in again."); return; }
+      const data = await res.json();
+      if (res.ok) {
+        feedback.textContent = "Broadcast sent.";
+        document.getElementById("manualMessage").value = "";
+      } else {
+        feedback.textContent = `Failed: ${data.error}`;
+      }
+    } catch (e) {
+      feedback.textContent = "Could not communicate with bridge.";
+    }
+  }
+
+  (async function tryAutoLogin() {
+    const key = getStoredKey();
+    if (!key) return;
+    try {
+      const res = await fetch(`${BRIDGE_URL}/status`, { headers: authHeaders() });
+      if (res.ok) unlockDashboard();
+    } catch (e) { /* stay on login screen */ }
+  })();
+</script>
+
+</body>
+</html>
