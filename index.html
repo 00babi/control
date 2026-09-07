@@ -308,65 +308,81 @@
     </div>
   </div>
 
-  <div class="panel">
-    <div class="panel-label">Banned words / names</div>
-    <div class="overview-line" style="font-size:0.78rem;">If the bot's reply contains any of these, it gets blocked. One per line — names, slurs, whatever you want suppressed.</div>
-    <textarea id="bannedWordsInput" placeholder="Enter one word or name per line..." style="min-height:90px;"></textarea>
-    <div class="action-row">
-      <span class="save-feedback" id="bannedFeedback"></span>
-      <button class="action-btn" onclick="saveBannedWords()">Save banned words</button>
-    </div>
-  </div>
+  <div style="display: grid; grid-template-columns: 1fr 320px; gap: 16px; align-items: start;">
 
-  <div class="panel">
-    <div class="panel-label">Tuning</div>
+    <div style="display:flex; flex-direction:column; gap:16px;">
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-      <div class="slider-group">
-        <div class="slider-header">
-          <span>Temperature</span>
-          <strong id="tempValue">1.05</strong>
+      <div class="panel">
+        <div class="panel-label">Tuning</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div class="slider-group">
+            <div class="slider-header">
+              <span>Temperature</span>
+              <strong id="tempValue">1.05</strong>
+            </div>
+            <input type="range" id="tempSlider" min="0.3" max="1.5" step="0.05" value="1.05" oninput="updateTempDesc(this.value);" />
+            <span class="slider-desc" id="tempDesc">Unhinged: creative, chaotic, sharp slang</span>
+          </div>
+          <div class="slider-group">
+            <div class="slider-header">
+              <span>Max response length</span>
+              <strong id="tokenValue">120</strong>
+            </div>
+            <input type="range" id="tokenSlider" min="50" max="300" step="10" value="120" oninput="document.getElementById('tokenValue').textContent = this.value;" />
+            <span class="slider-desc">Room to finish a thought without cutting off</span>
+          </div>
         </div>
-        <input type="range" id="tempSlider" min="0.3" max="1.5" step="0.05" value="1.05" oninput="updateTempDesc(this.value);" />
-        <span class="slider-desc" id="tempDesc">Unhinged: creative, chaotic, sharp slang</span>
+        <div class="action-row">
+          <span class="save-feedback" id="tuningFeedback"></span>
+          <button class="action-btn" onclick="saveTuning()">Save tuning</button>
+        </div>
       </div>
 
-      <div class="slider-group">
-        <div class="slider-header">
-          <span>Max response length</span>
-          <strong id="tokenValue">120</strong>
+      <div class="panel">
+        <div class="panel-label">Banned words / names</div>
+        <div class="overview-line" style="font-size:0.78rem;">If the bot's reply contains any of these it gets blocked. One per line.</div>
+        <textarea id="bannedWordsInput" placeholder="Enter one word or name per line..." style="min-height:80px;"></textarea>
+        <div class="action-row">
+          <span class="save-feedback" id="bannedFeedback"></span>
+          <button class="action-btn" onclick="saveBannedWords()">Save banned words</button>
         </div>
-        <input type="range" id="tokenSlider" min="50" max="300" step="10" value="120" oninput="document.getElementById('tokenValue').textContent = this.value;" />
-        <span class="slider-desc">Room to finish a thought without cutting off</span>
+      </div>
+
+      <div class="panel">
+        <div class="panel-label">Manual broadcast</div>
+        <div class="dispatch-row">
+          <input type="text" id="targetChannelId" placeholder="Channel ID" />
+          <input type="text" id="manualMessage" placeholder="Message content..." />
+          <button class="action-btn" onclick="sendBroadcast()">Dispatch</button>
+        </div>
+        <span class="dispatch-result" id="broadcastResult"></span>
+      </div>
+
+    </div>
+
+    <div class="panel" style="position:sticky; top:24px;">
+      <div class="panel-label">
+        Friends
+        <button class="preset-btn" onclick="loadMembers()" style="font-size:0.72rem;">↻ Refresh</button>
+      </div>
+      <div class="overview-line" style="font-size:0.78rem;">Click a member to add notes the bot will know about them.</div>
+
+      <div id="membersList" style="display:flex; flex-direction:column; gap:4px; max-height:300px; overflow-y:auto; margin-top:4px;">
+        <div style="color:var(--muted-dim); font-size:0.8rem;">Loading members...</div>
+      </div>
+
+      <div id="friendEditor" style="display:none; flex-direction:column; gap:8px; border-top:1px solid var(--border); padding-top:12px; margin-top:8px;">
+        <div style="font-size:0.85rem; font-weight:600;" id="friendEditorName"></div>
+        <textarea id="friendNotesInput" placeholder="Notes — interests, personality, inside jokes..." style="min-height:80px;"></textarea>
+        <div class="action-row">
+          <span class="save-feedback" id="friendsFeedback"></span>
+          <button class="action-btn" onclick="saveFriendNote()">Save note</button>
+        </div>
       </div>
     </div>
 
-    <div class="action-row">
-      <span class="save-feedback" id="tuningFeedback"></span>
-      <button class="action-btn" onclick="saveTuning()">Save tuning</button>
-    </div>
   </div>
 
-  <div class="panel">
-    <div class="panel-label">Friends</div>
-    <div class="overview-line" style="font-size:0.78rem;">Add a Discord username (exact, lowercase) and notes about them. The bot uses this when they message it.</div>
-    <div id="friendsList" style="display:flex; flex-direction:column; gap:8px;"></div>
-    <button class="preset-btn" style="align-self:flex-start; margin-top:4px;" onclick="addFriendRow()">+ Add friend</button>
-    <div class="action-row">
-      <span class="save-feedback" id="friendsFeedback"></span>
-      <button class="action-btn" onclick="saveFriends()">Save friends</button>
-    </div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">Manual broadcast</div>
-    <div class="dispatch-row">
-      <input type="text" id="targetChannelId" placeholder="Channel ID" />
-      <input type="text" id="manualMessage" placeholder="Message content..." />
-      <button class="action-btn" onclick="sendBroadcast()">Dispatch</button>
-    </div>
-    <span class="dispatch-result" id="broadcastResult"></span>
-  </div>
 </div>
 
 <script>
@@ -423,7 +439,7 @@
   function unlockDashboard() {
     document.getElementById("loginOverlay").style.display = "none";
     document.getElementById("dashboardRoot").style.display = "flex";
-    loadFriends();
+    loadFriends().then(() => loadMembers());
     pollStatus();
     setInterval(pollStatus, 3000);
   }
@@ -560,50 +576,71 @@
     }
   }
 
-  function addFriendRow(username = "", notes = "") {
-    const list = document.getElementById("friendsList");
-    const row = document.createElement("div");
-    row.style.cssText = "display:flex; gap:8px; align-items:center;";
-    row.innerHTML = `
-      <input type="text" placeholder="username (e.g. crazier_ah)" value="${username}" style="flex:0 0 200px;" class="friend-username" />
-      <input type="text" placeholder="Notes about them..." value="${notes}" style="flex:1;" class="friend-notes" />
-      <button class="preset-btn" style="flex-shrink:0;" onclick="this.parentElement.remove()">✕</button>
-    `;
-    list.appendChild(row);
+  let friendsData = {};
+  let selectedUsername = "";
+
+  async function loadMembers() {
+    const list = document.getElementById("membersList");
+    list.innerHTML = `<div style="color:var(--muted-dim); font-size:0.8rem;">Loading...</div>`;
+    try {
+      const res = await fetch(`${BRIDGE_URL}/members`, { headers: authHeaders() });
+      if (!res.ok) { list.innerHTML = `<div style="color:var(--red); font-size:0.8rem;">Could not load members.</div>`; return; }
+      const members = await res.json();
+      list.innerHTML = "";
+      members.forEach(m => {
+        const hasNote = !!friendsData[m.username];
+        const btn = document.createElement("button");
+        btn.className = "preset-btn";
+        btn.style.cssText = "text-align:left; width:100%; display:flex; align-items:center; gap:8px; padding:7px 10px;";
+        btn.innerHTML = `
+          ${m.avatar ? `<img src="${m.avatar}" style="width:22px;height:22px;border-radius:50%;flex-shrink:0;" onerror="this.style.display='none'">` : ""}
+          <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${m.display_name}</span>
+          ${hasNote ? `<span style="width:7px;height:7px;border-radius:50%;background:var(--amber);flex-shrink:0;" title="Has notes"></span>` : ""}
+        `;
+        btn.onclick = () => openFriendEditor(m);
+        list.appendChild(btn);
+      });
+    } catch (e) {
+      list.innerHTML = `<div style="color:var(--red); font-size:0.8rem;">Bridge offline.</div>`;
+    }
+  }
+
+  function openFriendEditor(member) {
+    selectedUsername = member.username;
+    document.getElementById("friendEditorName").textContent = `Notes for ${member.display_name}`;
+    document.getElementById("friendNotesInput").value = friendsData[member.username] || "";
+    document.getElementById("friendEditor").style.display = "flex";
+    document.getElementById("friendsFeedback").textContent = "";
   }
 
   async function loadFriends() {
     try {
       const res = await fetch(`${BRIDGE_URL}/friends`, { headers: authHeaders() });
       if (!res.ok) return;
-      const data = await res.json();
-      for (const [username, notes] of Object.entries(data)) {
-        addFriendRow(username, notes);
-      }
+      friendsData = await res.json();
     } catch (e) {}
   }
 
-  async function saveFriends() {
+  async function saveFriendNote() {
+    const notes = document.getElementById("friendNotesInput").value.trim();
     const feedback = document.getElementById("friendsFeedback");
-    const rows = document.querySelectorAll("#friendsList > div");
-    const friends = {};
-    rows.forEach(row => {
-      const username = row.querySelector(".friend-username").value.trim().toLowerCase();
-      const notes = row.querySelector(".friend-notes").value.trim();
-      if (username) friends[username] = notes;
-    });
-
+    if (notes) {
+      friendsData[selectedUsername] = notes;
+    } else {
+      delete friendsData[selectedUsername];
+    }
     feedback.textContent = "Saving...";
     try {
       const res = await fetch(`${BRIDGE_URL}/friends`, {
         method: "POST",
         headers: authHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify(friends)
+        body: JSON.stringify(friendsData)
       });
       if (res.status === 401) { lockDashboard("Session expired. Log in again."); return; }
       if (res.ok) {
         feedback.textContent = "Saved.";
-        setTimeout(() => feedback.textContent = "", 3000);
+        setTimeout(() => feedback.textContent = "", 2000);
+        loadMembers();
       } else {
         feedback.textContent = "Could not save.";
       }
