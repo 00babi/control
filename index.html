@@ -292,24 +292,29 @@
   <div class="panel">
     <div class="panel-label">
       Persona
-      <div style="display: flex; gap: 8px; align-items: center;">
-        <div class="preset-row">
-          <button class="preset-btn" onclick="applyPreset('unhinged')">Unhinged</button>
-          <button class="preset-btn" onclick="applyPreset('savage')">Savage roaster</button>
-          <button class="preset-btn" onclick="applyPreset('chill')">Casual chill</button>
-        </div>
-        <a class="repo-link" href="https://github.com/00babi/control/blob/main/system_prompt.txt" target="_blank">View starting prompt</a>
+      <div class="preset-row">
+        <button class="preset-btn" onclick="applyPreset('unhinged')">Unhinged</button>
+        <button class="preset-btn" onclick="applyPreset('savage')">Savage roaster</button>
+        <button class="preset-btn" onclick="applyPreset('chill')">Casual chill</button>
       </div>
     </div>
-
     <div>
       <label class="field-label" style="margin-bottom: 6px;">System instructions</label>
       <textarea id="systemPromptInput" placeholder="Loading..."></textarea>
     </div>
-
     <div class="action-row">
       <span class="save-feedback" id="personaFeedback"></span>
       <button class="action-btn" onclick="savePersona()">Save persona</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">Banned words / names</div>
+    <div class="overview-line" style="font-size:0.78rem;">If the bot's reply contains any of these, it gets blocked. One per line — names, slurs, whatever you want suppressed.</div>
+    <textarea id="bannedWordsInput" placeholder="Enter one word or name per line..." style="min-height:90px;"></textarea>
+    <div class="action-row">
+      <span class="save-feedback" id="bannedFeedback"></span>
+      <button class="action-btn" onclick="saveBannedWords()">Save banned words</button>
     </div>
   </div>
 
@@ -489,6 +494,8 @@
         document.getElementById("tokenSlider").value = data.settings.max_tokens || 120;
         document.getElementById("tokenValue").textContent = data.settings.max_tokens || 120;
         updateTempDesc(data.settings.temperature);
+        const banned = data.settings.banned_words || [];
+        document.getElementById("bannedWordsInput").value = banned.join("\n");
         initialLoaded = true;
       }
     } catch (e) {
@@ -539,6 +546,12 @@
     } catch (e) {
       feedback.textContent = "Could not reach bridge.";
     }
+  }
+
+  function saveBannedWords() {
+    const raw = document.getElementById("bannedWordsInput").value;
+    const words = raw.split("\n").map(w => w.trim()).filter(Boolean);
+    pushSettings({ banned_words: words }, document.getElementById("bannedFeedback"));
   }
 
   function saveTuning() {
