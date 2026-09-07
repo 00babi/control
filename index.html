@@ -348,6 +348,17 @@
   </div>
 
   <div class="panel">
+    <div class="panel-label">Friends</div>
+    <div class="overview-line" style="font-size:0.78rem;">Add a Discord username (exact, lowercase) and notes about them. The bot uses this when they message it.</div>
+    <div id="friendsList" style="display:flex; flex-direction:column; gap:8px;"></div>
+    <button class="preset-btn" style="align-self:flex-start; margin-top:4px;" onclick="addFriendRow()">+ Add friend</button>
+    <div class="action-row">
+      <span class="save-feedback" id="friendsFeedback"></span>
+      <button class="action-btn" onclick="saveFriends()">Save friends</button>
+    </div>
+  </div>
+
+  <div class="panel">
     <div class="panel-label">Manual broadcast</div>
     <div class="dispatch-row">
       <input type="text" id="targetChannelId" placeholder="Channel ID" />
@@ -412,6 +423,7 @@
   function unlockDashboard() {
     document.getElementById("loginOverlay").style.display = "none";
     document.getElementById("dashboardRoot").style.display = "flex";
+    loadFriends();
     pollStatus();
     setInterval(pollStatus, 3000);
   }
@@ -545,6 +557,58 @@
       }
     } catch (e) {
       feedback.textContent = "Could not reach bridge.";
+    }
+  }
+
+  function addFriendRow(username = "", notes = "") {
+    const list = document.getElementById("friendsList");
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex; gap:8px; align-items:center;";
+    row.innerHTML = `
+      <input type="text" placeholder="username (e.g. crazier_ah)" value="${username}" style="flex:0 0 200px;" class="friend-username" />
+      <input type="text" placeholder="Notes about them..." value="${notes}" style="flex:1;" class="friend-notes" />
+      <button class="preset-btn" style="flex-shrink:0;" onclick="this.parentElement.remove()">✕</button>
+    `;
+    list.appendChild(row);
+  }
+
+  async function loadFriends() {
+    try {
+      const res = await fetch(`${BRIDGE_URL}/friends`, { headers: authHeaders() });
+      if (!res.ok) return;
+      const data = await res.json();
+      for (const [username, notes] of Object.entries(data)) {
+        addFriendRow(username, notes);
+      }
+    } catch (e) {}
+  }
+
+  async function saveFriends() {
+    const feedback = document.getElementById("friendsFeedback");
+    const rows = document.querySelectorAll("#friendsList > div");
+    const friends = {};
+    rows.forEach(row => {
+      const username = row.querySelector(".friend-username").value.trim().toLowerCase();
+      const notes = row.querySelector(".friend-notes").value.trim();
+      if (username) friends[username] = notes;
+    });
+
+    feedback.textContent = "Saving...";
+    try {
+      const res = await fetch(`${BRIDGE_URL}/friends`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify(friends)
+      });
+      if (res.status === 401) { lockDashboard("Session expired. Log in again."); return; }
+      if (res.ok) {
+        feedback.textContent = "Saved.";
+        setTimeout(() => feedback.textContent = "", 3000);
+      } else {
+        feedback.textContent = "Could not save.";
+      }
+    } catch (e) {
+      feedback.textContent = "Error reaching bridge.";
     }
   }
 
