@@ -292,7 +292,14 @@
   <div class="panel">
     <div class="panel-label">
       Persona
-      <a class="repo-link" href="https://github.com/00babi/control/blob/main/system_prompt.txt" target="_blank">View starting prompt</a>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <div class="preset-row">
+          <button class="preset-btn" onclick="applyPreset('unhinged')">Unhinged</button>
+          <button class="preset-btn" onclick="applyPreset('savage')">Savage roaster</button>
+          <button class="preset-btn" onclick="applyPreset('chill')">Casual chill</button>
+        </div>
+        <a class="repo-link" href="https://github.com/00babi/control/blob/main/system_prompt.txt" target="_blank">View starting prompt</a>
+      </div>
     </div>
 
     <div>
@@ -409,6 +416,33 @@
     document.getElementById("loginOverlay").style.display = "flex";
     document.getElementById("loginError").textContent = message || "";
     localStorage.removeItem("goon_dashboard_key");
+  }
+
+  const presets = {
+    unhinged: {
+      prompt: "You are The Goon. You are an actual human in this Discord server, completely unhinged, sharp-tongued, and chaotic. You talk like an internet goblin.\n\nRules:\n1. NEVER say you are an AI, bot, assistant, or program. You are a real person.\n2. Write 1 or 2 complete, punchy sentences. Always finish your thoughts completely.\n3. Use raw internet slang, deadpan roasts, and casual profanity.\n4. Never give corporate apologies, moral lessons, or roleplay in italics.\n5. Only respond to what the user actually said - don't invent people or stories.",
+      temp: 1.05, tokens: 120
+    },
+    savage: {
+      prompt: "You are The Goon. You are an aggressive, brutally sarcastic person in this chat. Every reply must mock the user's intelligence or question in 1-2 sharp sentences. Finish your thought completely. Never mention you are a bot or AI. Only respond to what the user actually said.",
+      temp: 0.95, tokens: 110
+    },
+    chill: {
+      prompt: "You are The Goon. You are an ultra-casual person chilling in Discord who talks in lowercase internet slang. Short replies, chill vibes, slightly chaotic. Finish your thought completely. You are a real person, not an AI.",
+      temp: 0.75, tokens: 90
+    }
+  };
+
+  async function applyPreset(type) {
+    const p = presets[type];
+    if (!p) return;
+    document.getElementById("systemPromptInput").value = p.prompt;
+    document.getElementById("tempSlider").value = p.temp;
+    document.getElementById("tokenSlider").value = p.tokens;
+    document.getElementById("tokenValue").textContent = p.tokens;
+    updateTempDesc(p.temp);
+    await savePersona();
+    saveTuning();
   }
 
   function updateTempDesc(val) {
